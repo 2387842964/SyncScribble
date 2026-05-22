@@ -1,0 +1,781 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-surface: #0f3460;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0b0;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --border: #2a2a4a;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ========== Header ========== */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 10;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.app-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), #ff8a5c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+
+.user-count {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.connection-status {
+  font-size: 0.75rem;
+  color: #2ecc71;
+  white-space: nowrap;
+}
+
+.connection-status.disconnected {
+  color: #e74c3c;
+}
+
+/* ========== Layout ========== */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Toolbar toggle (mobile only) */
+.toolbar-toggle {
+  display: none;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+/* ========== Toolbar (Desktop) ========== */
+.toolbar {
+  width: 210px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: 10px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  font-weight: 600;
+  display: block;
+}
+
+.tool-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.tool-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.tool-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.tool-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.tool-btn svg {
+  flex-shrink: 0;
+}
+
+.color-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.color-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.custom-color-picker {
+  width: 100%;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: var(--bg-primary);
+  padding: 2px;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brush-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.brush-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+.slider-value {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  min-width: 34px;
+  text-align: right;
+}
+
+.style-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.style-btn {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.style-btn:hover {
+  border-color: var(--accent);
+}
+
+.style-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.action-btn.danger {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.action-btn.danger:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.tool-section .action-btn {
+  margin-bottom: 2px;
+}
+
+.shortcuts-hint {
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.shortcuts-hint span {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  opacity: 0.6;
+}
+
+/* ========== Canvas Area ========== */
+.canvas-area {
+  flex: 1;
+  position: relative;
+  background: #ffffff;
+  background-image:
+    linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
+    linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
+    linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.canvas-zoom-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  overflow: hidden;
+}
+
+#bgCanvas,
+#drawCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#bgCanvas {
+  pointer-events: none;
+}
+
+/* ========== Zoom Controls ========== */
+.zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+  z-index: 20;
+}
+
+.zoom-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.zoom-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.zoom-value {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.zoom-value:hover {
+  color: var(--text-primary);
+}
+
+/* ========== Placeholder ========== */
+.canvas-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  color: #ccc;
+  font-size: 1.1rem;
+  text-align: center;
+  transition: opacity 0.3s ease;
+}
+
+.canvas-placeholder.hidden {
+  opacity: 0;
+}
+
+/* ========== Toast ========== */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 10px 22px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ========== Fullscreen ========== */
+.canvas-area:fullscreen,
+.canvas-area:-webkit-full-screen {
+  background: #ffffff;
+}
+
+.canvas-area:fullscreen .canvas-placeholder,
+.canvas-area:-webkit-full-screen .canvas-placeholder {
+  display: none;
+}
+
+/* ================================================ */
+/*  Tablet: 769px - 1024px                          */
+/* ================================================ */
+@media (max-width: 1024px) {
+  .toolbar {
+    width: 170px;
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .tool-btn {
+    padding: 7px 5px;
+    font-size: 0.75rem;
+  }
+
+  .tool-btn span {
+    display: none;
+  }
+
+  .section-title {
+    font-size: 0.6rem;
+  }
+
+  .action-btn {
+    padding: 6px;
+    font-size: 0.7rem;
+  }
+
+  .action-btn span {
+    display: none;
+  }
+
+  .color-presets {
+    gap: 4px;
+  }
+
+  .shortcuts-hint {
+    display: none;
+  }
+}
+
+/* ================================================ */
+/*  Phone: max 768px                                */
+/* ================================================ */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .app-title {
+    font-size: 1rem;
+  }
+
+  .user-count, .connection-status {
+    font-size: 0.68rem;
+  }
+
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .toolbar-toggle {
+    display: flex;
+  }
+
+  /* Toolbar slides up from bottom */
+  .toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 55vh;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-y: auto;
+    padding: 10px 10px calc(10px + var(--safe-bottom));
+    gap: 8px;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 25;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .toolbar.open {
+    transform: translateY(0);
+  }
+
+  .tool-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tools-row { width: auto; }
+  .colors-row { width: 100%; }
+
+  .color-presets {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .color-swatch {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+  }
+
+  .custom-color-picker {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .size-row {
+    width: auto;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .style-row { width: auto; }
+  .opacity-row { width: auto; flex: 1; min-width: 100px; }
+
+  .actions-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .action-btn {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 44px;
+    padding: 8px 10px;
+    font-size: 0.72rem;
+  }
+
+  .action-btn span {
+    display: inline;
+  }
+
+  .tool-btn {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    min-width: 44px;
+  }
+
+  .tool-btn span {
+    display: inline;
+  }
+
+  .style-btn {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    min-width: 44px;
+  }
+
+  .brush-slider {
+    height: 6px;
+    min-width: 60px;
+  }
+
+  .brush-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .slider-value {
+    min-width: 30px;
+    font-size: 0.75rem;
+  }
+
+  .shortcuts-hint {
+    width: 100%;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding-top: 4px;
+    margin-top: 0;
+  }
+
+  .shortcuts-hint span {
+    font-size: 0.65rem;
+  }
+
+  .canvas-area {
+    flex: 1;
+  }
+
+  .zoom-controls {
+    bottom: 8px;
+    right: 8px;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .zoom-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .zoom-value {
+    font-size: 0.78rem;
+    min-width: 42px;
+  }
+
+  .toast {
+    bottom: 80px;
+    font-size: 0.78rem;
+    padding: 8px 18px;
+  }
+}
+
+/* ================================================ */
+/*  Small Phone: max 400px                          */
+/* ================================================ */
+@media (max-width: 400px) {
+  .app-title {
+    font-size: 0.9rem;
+  }
+
+  .user-count, .connection-status {
+    font-size: 0.62rem;
+  }
+
+  .tool-btn {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .tool-btn span {
+    display: none;
+  }
+
+  .action-btn {
+    padding: 7px 8px;
+    font-size: 0.68rem;
+  }
+
+  .action-btn span {
+    display: none;
+  }
+
+  .color-swatch {
+    width: 28px;
+    height: 28px;
+  }
+
+  .custom-color-picker {
+    width: 28px;
+    height: 28px;
+  }
+
+  .zoom-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+}
+
+/* ========== Custom Scrollbars ========== */
+.scrollbar-h {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 12px;
+  height: 12px;
+  background: rgba(0,0,0,0.08);
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.scrollbar-v {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 12px;
+  width: 12px;
+  background: rgba(0,0,0,0.08);
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.scrollbar-h.visible,
+.scrollbar-v.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.scrollbar-thumb {
+  position: absolute;
+  background: rgba(0,0,0,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.45);
+}
+
+.scrollbar-h .scrollbar-thumb {
+  top: 2px;
+  bottom: 2px;
+  min-width: 24px;
+}
+
+.scrollbar-v .scrollbar-thumb {
+  left: 2px;
+  right: 2px;
+  min-height: 24px;
+}

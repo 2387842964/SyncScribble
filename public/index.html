@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SyncScribble - 实时协作绘图</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1 class="app-title">协同画板</h1>
+      <span class="user-count" id="userCount">🟢 1 位用户在线</span>
+      <span class="connection-status" id="connectionStatus">● 已连接</span>
+    </header>
+
+    <div class="main-layout">
+      <button class="toolbar-toggle" id="toolbarToggle" title="工具栏">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="currentColor"/></svg>
+      </button>
+
+      <aside class="toolbar" id="toolbar">
+        <div class="tool-section tools-row">
+          <div class="tool-buttons">
+            <button class="tool-btn active" id="penTool" title="画笔 (P)">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/></svg>
+              <span>画笔</span>
+            </button>
+            <button class="tool-btn" id="eraserTool" title="橡皮擦 (E)">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0zM4.22 15.58l3.54 3.54c.78.78 2.04.78 2.83 0l3.54-3.54-6.37-6.37-3.54 6.37z" fill="currentColor"/></svg>
+              <span>橡皮擦</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="tool-section colors-row">
+          <div class="color-presets">
+            <button class="color-swatch active" data-color="#000000" style="background:#000000" title="黑色"></button>
+            <button class="color-swatch" data-color="#e74c3c" style="background:#e74c3c" title="红色"></button>
+            <button class="color-swatch" data-color="#2ecc71" style="background:#2ecc71" title="绿色"></button>
+            <button class="color-swatch" data-color="#3498db" style="background:#3498db" title="蓝色"></button>
+            <button class="color-swatch" data-color="#f39c12" style="background:#f39c12" title="橙色"></button>
+            <button class="color-swatch" data-color="#9b59b6" style="background:#9b59b6" title="紫色"></button>
+            <button class="color-swatch" data-color="#1abc9c" style="background:#1abc9c" title="青色"></button>
+            <button class="color-swatch" data-color="#e91e63" style="background:#e91e63" title="粉色"></button>
+          </div>
+          <input type="color" id="customColor" class="custom-color-picker" value="#000000" title="自定义颜色">
+        </div>
+
+        <div class="tool-section size-row">
+          <div class="slider-container">
+            <input type="range" id="brushSize" min="1" max="50" value="4" class="brush-slider">
+            <span class="slider-value" id="brushSizeValue">4px</span>
+          </div>
+        </div>
+
+        <div class="tool-section style-row">
+          <div class="style-buttons">
+            <button class="style-btn active" data-style="round" title="圆角">圆角</button>
+            <button class="style-btn" data-style="square" title="方角">方角</button>
+            <button class="style-btn" data-style="butt" title="平头">平头</button>
+          </div>
+        </div>
+
+        <div class="tool-section opacity-row">
+          <div class="slider-container">
+            <input type="range" id="opacity" min="10" max="100" value="100" class="brush-slider">
+            <span class="slider-value" id="opacityValue">100%</span>
+          </div>
+        </div>
+
+        <div class="tool-section actions-row">
+          <button class="action-btn danger" id="clearBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="currentColor"/></svg>
+            <span>清空画布</span>
+          </button>
+          <button class="action-btn" id="saveBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/></svg>
+            <span>保存为 PNG</span>
+          </button>
+          <button class="action-btn" id="bgImageBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" fill="currentColor"/></svg>
+            <span>设置背景图</span>
+          </button>
+          <button class="action-btn" id="clearBgBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+            <span>清除背景</span>
+          </button>
+          <input type="file" id="bgImageInput" accept="image/*" style="display:none">
+          <button class="action-btn" id="fullscreenBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" fill="currentColor"/></svg>
+            <span>全屏</span>
+          </button>
+        </div>
+
+        <div class="tool-section shortcuts-hint">
+          <span>P 画笔 · E 橡皮 · F 全屏 · Ctrl+S 保存 · Ctrl+滚轮 缩放</span>
+        </div>
+      </aside>
+
+      <main class="canvas-area" id="canvasArea">
+        <div class="canvas-zoom-wrapper" id="canvasZoomWrapper">
+          <canvas id="bgCanvas"></canvas>
+          <canvas id="drawCanvas"></canvas>
+        </div>
+        <div class="canvas-placeholder" id="canvasPlaceholder">
+          <p>开始绘制！</p>
+        </div>
+        <div class="scrollbar-h" id="scrollbarH"><div class="scrollbar-thumb" id="scrollbarThumbH"></div></div>
+        <div class="scrollbar-v" id="scrollbarV"><div class="scrollbar-thumb" id="scrollbarThumbV"></div></div>
+        <div class="zoom-controls" id="zoomControls">
+          <button class="zoom-btn" id="zoomOutBtn" title="缩小">−</button>
+          <span class="zoom-value" id="zoomValue">100%</span>
+          <button class="zoom-btn" id="zoomInBtn" title="放大">+</button>
+          <button class="zoom-btn zoom-reset" id="zoomResetBtn" title="重置缩放">↺</button>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
