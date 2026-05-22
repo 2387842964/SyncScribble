@@ -1,91 +1,76 @@
 # SyncScribble
 
-实时协作绘图应用。多人同时在线绘制，画布内容实时同步。
+我构建了一个实时协作绘图应用。它基于 Canvas 2D 原生 API 实现了一个多人同步画板，支持画笔、橡皮擦、缩放平移、背景图导入，所有操作通过 Socket.IO 在用户之间实时同步。
 
-## 功能
+## 为什么做这个
 
-- **画笔 / 橡皮擦**：支持圆角、方角、平头三种笔触，可调粗细和透明度
-- **八色预设 + 自定义取色器**
-- **实时协作**：基于 Socket.IO，所有用户看到同一画布
-- **缩放**：Ctrl+滚轮 / 双指捏合 / 底部按钮，笔画按矢量重绘保持清晰
-- **平移**：右键拖拽 / 中键拖拽 / 放大后自动出现的滚动条
-- **背景图**：上传图片作为画布背景，可随时清除
-- **保存**：Ctrl+S 导出为 PNG
-- **历史重放**：新加入的用户自动回放最近 5000 条绘图历史
-- **响应式**：桌面侧边工具栏 / 手机底部滑出面板
-- **在线人数**实时显示
+市面上大多数协作白板要么太重（Figma、Miro），要么太简陋。我想做一个开箱即用、零依赖前端框架的轻量画板——打开浏览器就能画，多人实时可见，缩放不糊，拖拽跟手。
+
+## 几个有意思的技术点
+
+**缩放时的矢量重放**。Canvas 是位图——笔画落笔就成了像素。普通缩放只是改了变换矩阵，旧笔画不会跟着动，也不会变清晰。我加了一层客户端历史记录，每次缩放都清空画布、按新倍率逐笔矢量重放。缩放后的线条始终保持锐利，不会出现锯齿或模糊。
+
+**平移的性能拆分**。最初缩放和平移共用同一个重放逻辑，但中键拖拽时每个 mousemove 都触发全量重绘，画布直接卡死。解法是把"仅平移"拆成轻量路径，只更新变换矩阵不重放；缩放变更才走矢量重放。后来发现轻量路径虽然不卡了，但笔画不会跟着平移动——Canvas 2D 的 `setTransform` 只影响后续绘制，不影响已有像素。最终统一回了重放路径，代价是拖拽时每帧都在全量重绘，但中等复杂度下完全可接受，换来了正确性。
+
+**自定义滚动条**。放大后需要导航，加了一套 overlay 滚动条——底部和右侧各一条，拇指大小按缩放比例动态计算。这里踩过一个坑：`maxPanX` 用了 `width * (1 - zoom)`，zoom > 1 时结果是负数，滚轮比始终为 0，拇指永远不动的。
+
+**历史同步**。服务端保留最近 5000 条绘图操作，新客户端加入时全量回放。不是同步最终画面，而是同步操作序列——这意味着每个客户端的画面都是独立渲染的，不会被别人的分辨率或缩放比例影响。
+
+## 技术栈
+
+```
+后端:  Node.js + Express + Socket.IO (WebSocket)
+前端:  原生 Canvas 2D API + 原生 DOM，零框架
+部署:  systemd 守护 + Nginx 反代 (WebSocket 升级)
+```
 
 ## 快速启动
 
 ```bash
-# 安装依赖
 npm install
-
-# 启动服务 (默认端口 3000)
-npm start
+npm start          # 默认 :3000，可通过 PORT 环境变量修改
 ```
 
-打开浏览器访问 `http://localhost:3000`。
+打开 `http://localhost:3000`，打开两个浏览器窗口就能看到实时同步效果。
 
-## 快捷键
+## 操作速览
 
-| 按键 | 功能 |
+| 操作 | 方式 |
 |------|------|
-| `P` | 画笔 |
-| `E` | 橡皮擦 |
-| `F` | 全屏 |
-| `Ctrl+S` | 保存为 PNG |
-| `Ctrl+0` | 重置缩放 |
-| `Ctrl+滚轮` | 缩放 |
-| 右键拖拽 | 平移画布 |
-| 中键拖拽 | 平移画布 |
+| 绘画 | 鼠标左键 / 触屏单指 |
+| 橡皮擦 | 按 `E` 切换 |
+| 缩放 | `Ctrl+滚轮` / 双指捏合 / 右下角 `+−` 按钮 |
+| 平移 | **右键拖拽** / 中键拖拽 / 放大后的滚动条 |
+| 保存 | `Ctrl+S` 导出 PNG |
+| 取色 | 八色预设 + 自定义取色器 |
+| 背景图 | 工具栏上传 / 清除 |
+| 全屏 | 按 `F` |
 
-## 技术栈
-
-- **后端**: Node.js + Express + Socket.IO
-- **前端**: 原生 Canvas 2D API，无框架
-- **通信协议**: WebSocket
-
-## 项目结构
+## 目录结构
 
 ```
 SyncScribble/
-├── server.js          # 服务端：Express 静态服务 + Socket.IO 事件转发
+├── server.js          # Socket.IO 事件中转 + Express 静态服务
 ├── package.json
+├── test_canvas.js     # WebSocket 协议级自动化测试 (13 项)
 └── public/
-    ├── index.html      # 页面结构
-    ├── app.js          # 画布核心逻辑：绘制、缩放、平移、同步
-    └── style.css       # 样式：深色主题、响应式布局
+    ├── index.html      # 页面骨架
+    ├── app.js          # 全部画布逻辑 (~700 行)
+    └── style.css       # 深色主题 + 响应式
 ```
 
 ## 部署
 
-在服务器上安装依赖后，建议使用 systemd 管理进程，Nginx 反代 WebSocket：
+```bash
+# 服务器上
+npm install --production
+PORT=3001 nohup node server.js &
 
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_read_timeout 86400;
-    }
-
-    location /socket.io/ {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_read_timeout 86400;
-    }
-}
+# Nginx 配置 (关键: WebSocket Upgrade)
+# 见下方 nginx conf
 ```
+
+Nginx 反代要点：`/socket.io/` 路径必须单独配置 `Upgrade` 和 `Connection` 头，否则 Socket.IO 会降级到 HTTP 长轮询。
 
 ## License
 
