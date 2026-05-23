@@ -11,6 +11,7 @@ services:
       ROOM_IDLE_OWNER_ONLY_MS: 7200000
       ROOM_DESTROY_WARNING_MS: 60000
       DATA_DIR: /app/data
+      COOKIE_SECURE: "false"
       # Reserved for the next persistence step. Use a dedicated DB/user in the
       # existing PostgreSQL container, never the Sub2API database.
       DATABASE_URL: ${DATABASE_URL:-}

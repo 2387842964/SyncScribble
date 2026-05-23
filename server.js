@@ -25,6 +25,7 @@ const MAX_CHAT_IMAGE_DATA_URL_LENGTH = Number(process.env.MAX_CHAT_IMAGE_DATA_UR
 const MAX_CANVAS_OBJECTS_PER_ROOM = Number(process.env.MAX_CANVAS_OBJECTS_PER_ROOM || 12000);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'state.json');
+const COOKIE_SECURE = String(process.env.COOKIE_SECURE || 'false').toLowerCase() === 'true';
 
 app.use(express.json({ limit: '8mb' }));
 
@@ -220,7 +221,7 @@ function auth(req, res, next) {
 }
 
 function setSessionCookie(res, token) {
-  const secure = NODE_ENV === 'production' ? '; Secure' : '';
+  const secure = COOKIE_SECURE ? '; Secure' : '';
   res.setHeader(
     'Set-Cookie',
     `syncscribble_session=${encodeURIComponent(token)}; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}; Path=/; HttpOnly; SameSite=Lax${secure}`
