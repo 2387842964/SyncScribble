@@ -1,0 +1,25 @@
+services:
+  syncscribble:
+    build: .
+    container_name: syncscribble-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SESSION_TTL_MS: 604800000
+      INVITE_TTL_MS: 120000
+      ROOM_IDLE_OWNER_ONLY_MS: 7200000
+      ROOM_DESTROY_WARNING_MS: 60000
+      DATA_DIR: /app/data
+      # Reserved for the next persistence step. Use a dedicated DB/user in the
+      # existing PostgreSQL container, never the Sub2API database.
+      DATABASE_URL: ${DATABASE_URL:-}
+      REDIS_URL: ${REDIS_URL:-}
+      REDIS_KEY_PREFIX: syncscribble:
+    volumes:
+      - syncscribble_data:/app/data
+    ports:
+      - "3001:3000"
+
+volumes:
+  syncscribble_data:

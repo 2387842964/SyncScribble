@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+.git
+.claude
+.npm-cache
+data
+deploy*.js
+fix_service.js
+dist

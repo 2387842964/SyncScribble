@@ -1,5 +1,7 @@
 node_modules/
 .npm-cache/
 .claude/
+dist/
+data/
 deploy*.js
 fix_service.js
