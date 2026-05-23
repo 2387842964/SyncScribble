@@ -3,5 +3,6 @@ node_modules/
 .claude/
 dist/
 data/
+*.tar.gz
 deploy*.js
 fix_service.js
