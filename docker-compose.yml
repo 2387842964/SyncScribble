@@ -15,7 +15,7 @@ services:
       # existing PostgreSQL container, never the Sub2API database.
       DATABASE_URL: ${DATABASE_URL:-}
       REDIS_URL: ${REDIS_URL:-}
-      REDIS_KEY_PREFIX: syncscribble:
+      REDIS_KEY_PREFIX: "syncscribble:"
     volumes:
       - syncscribble_data:/app/data
     ports:
