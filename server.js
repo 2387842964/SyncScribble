@@ -4,16 +4,39 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  maxHttpBufferSize: 8 * 1024 * 1024
+});
 
 app.use(express.static('public'));
 
 const drawingHistory = [];
 const MAX_HISTORY = 5000;
+const MAX_BACKGROUND_DATA_URL_LENGTH = 6 * 1024 * 1024;
+
+function addHistory(action) {
+  drawingHistory.push(action);
+  const overflow = drawingHistory.length - MAX_HISTORY;
+  if (overflow > 0) {
+    drawingHistory.splice(0, overflow);
+  }
+}
+
+function withSocketId(socket, data) {
+  return { ...data, id: socket.id };
+}
+
+function isValidBackground(dataUrl) {
+  return (
+    typeof dataUrl === 'string' &&
+    dataUrl.startsWith('data:image/') &&
+    dataUrl.length <= MAX_BACKGROUND_DATA_URL_LENGTH
+  );
+}
 
 function broadcastUserCount() {
-    io.emit('userCount', io.engine.clientsCount);
-  }
+  io.emit('userCount', io.engine.clientsCount);
+}
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id} (Total: ${io.engine.clientsCount})`);
@@ -22,21 +45,21 @@ io.on('connection', (socket) => {
   broadcastUserCount();
 
   socket.on('drawStart', (data) => {
-    drawingHistory.push({ type: 'drawStart', ...data, id: socket.id });
-    if (drawingHistory.length > MAX_HISTORY) drawingHistory.shift();
-    socket.broadcast.emit('drawStart', { ...data, id: socket.id });
+    const event = withSocketId(socket, data);
+    addHistory({ type: 'drawStart', ...event });
+    socket.broadcast.emit('drawStart', event);
   });
 
   socket.on('drawMove', (data) => {
-    drawingHistory.push({ type: 'drawMove', ...data, id: socket.id });
-    if (drawingHistory.length > MAX_HISTORY) drawingHistory.shift();
-    socket.broadcast.emit('drawMove', { ...data, id: socket.id });
+    const event = withSocketId(socket, data);
+    addHistory({ type: 'drawMove', ...event });
+    socket.broadcast.emit('drawMove', event);
   });
 
   socket.on('drawEnd', (data) => {
-    drawingHistory.push({ type: 'drawEnd', ...data, id: socket.id });
-    if (drawingHistory.length > MAX_HISTORY) drawingHistory.shift();
-    socket.broadcast.emit('drawEnd', { ...data, id: socket.id });
+    const event = withSocketId(socket, data);
+    addHistory({ type: 'drawEnd', ...event });
+    socket.broadcast.emit('drawEnd', event);
   });
 
   socket.on('clearCanvas', () => {
@@ -46,14 +69,16 @@ io.on('connection', (socket) => {
   });
 
   socket.on('setBackground', (dataUrl) => {
-    drawingHistory.push({ type: 'setBackground', dataUrl });
-    if (drawingHistory.length > MAX_HISTORY) drawingHistory.shift();
+    if (!isValidBackground(dataUrl)) {
+      socket.emit('systemMessage', 'Background image is invalid or too large');
+      return;
+    }
+    addHistory({ type: 'setBackground', dataUrl });
     socket.broadcast.emit('setBackground', dataUrl);
   });
 
   socket.on('clearBackground', () => {
-    drawingHistory.push({ type: 'clearBackground' });
-    if (drawingHistory.length > MAX_HISTORY) drawingHistory.shift();
+    addHistory({ type: 'clearBackground' });
     socket.broadcast.emit('clearBackground');
   });
 

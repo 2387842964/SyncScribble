@@ -23,9 +23,12 @@
   let bgImage = null;
   let zoom = 1;
   let panX = 0, panY = 0;
+  let viewFrame = null;
+  let resizeFrame = null;
 
   const localHistory = [];
   const MAX_LOCAL_HISTORY = 5000;
+  const MAX_BACKGROUND_DATA_URL_LENGTH = 6 * 1024 * 1024;
 
   const drawState = {
     tool: 'pen',
@@ -54,8 +57,6 @@
     const h = rect.height;
 
     if (drawCanvas.width !== w * dpr || drawCanvas.height !== h * dpr) {
-      const oldDrawData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
-
       [bgCanvas, drawCanvas].forEach(c => {
         c.width = w * dpr;
         c.height = h * dpr;
@@ -63,10 +64,17 @@
         c.style.height = h + 'px';
       });
 
-      updateCanvasTransforms(dpr);
-      redrawBackground();
-      drawCtx.putImageData(oldDrawData, 0, 0);
+      replayLocalHistory();
+      updateScrollbars();
     }
+  }
+
+  function scheduleResizeCanvas() {
+    if (resizeFrame) return;
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = null;
+      resizeCanvas();
+    });
   }
 
   function updateCanvasTransforms(dpr) {
@@ -117,7 +125,7 @@
       }
     }
 
-    if (lastBgAction && lastBgAction.type === 'setBackground' && lastBgAction.dataUrl) {
+    if (lastBgAction && lastBgAction.type === 'setBackground' && bgImage) {
       bgCtx.save();
       const cssW = bgCanvas.width / dpr;
       const cssH = bgCanvas.height / dpr;
@@ -226,6 +234,8 @@
   function stopDrawing(e) {
     if (!drawState.drawing) return;
     drawState.drawing = false;
+    localHistory.push({ type: 'drawEnd', id: socket.id });
+    while (localHistory.length > MAX_LOCAL_HISTORY) localHistory.shift();
     socket.emit('drawEnd', {});
   }
 
@@ -271,6 +281,8 @@
 
   function handleRemoteDrawEnd(data) {
     delete remoteStates[data.id];
+    localHistory.push({ type: 'drawEnd', ...data });
+    while (localHistory.length > MAX_LOCAL_HISTORY) localHistory.shift();
   }
 
   function setTool(tool) {
@@ -308,17 +320,23 @@
   }
 
   function clearCanvas(silent) {
+    bgImage = null;
     drawCtx.save();
     drawCtx.setTransform(1, 0, 0, 1, 0, 0);
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
     drawCtx.restore();
+    redrawBackground();
     updateCanvasTransforms();
     localHistory.length = 0;
-    drawState.hasContent = bgImage !== null;
+    drawState.hasContent = false;
     updatePlaceholder();
     if (!silent) {
       socket.emit('clearCanvas');
     }
+  }
+
+  function hasDrawContent() {
+    return localHistory.some(action => action.type === 'drawMove');
   }
 
   function clearBackground(silent) {
@@ -327,7 +345,7 @@
     redrawBackground();
     localHistory.push({ type: 'clearBackground' });
     while (localHistory.length > MAX_LOCAL_HISTORY) localHistory.shift();
-    drawState.hasContent = false;
+    drawState.hasContent = hasDrawContent();
     updatePlaceholder();
     showToast('Background image cleared');
     if (!silent) {
@@ -353,6 +371,10 @@
   function setBackgroundImage(file) {
     const reader = new FileReader();
     reader.onload = function (ev) {
+      if (ev.target.result.length > MAX_BACKGROUND_DATA_URL_LENGTH) {
+        showToast('Background image is too large');
+        return;
+      }
       const img = new Image();
       img.onload = function () {
         bgImage = img;
@@ -419,6 +441,14 @@
     document.getElementById('zoomValue').textContent = Math.round(zoom * 100) + '%';
   }
 
+  function scheduleApplyView() {
+    if (viewFrame) return;
+    viewFrame = requestAnimationFrame(() => {
+      viewFrame = null;
+      applyView();
+    });
+  }
+
   function setZoom(newZoom, cx, cy) {
     const oldZoom = zoom;
     zoom = Math.max(0.1, Math.min(5, newZoom));
@@ -470,16 +500,20 @@
     }
     while (localHistory.length > MAX_LOCAL_HISTORY) localHistory.shift();
 
-    for (const action of history) {
-      if (action.type === 'setBackground' && action.dataUrl) {
-        const img = new Image();
-        img.onload = function () {
-          bgImage = img;
-        };
-        img.src = action.dataUrl;
-      } else if (action.type === 'clearBackground') {
-        bgImage = null;
-      }
+    const lastBackgroundAction = [...history].reverse().find(action =>
+      action.type === 'setBackground' || action.type === 'clearBackground'
+    );
+    bgImage = null;
+
+    if (lastBackgroundAction && lastBackgroundAction.type === 'setBackground' && lastBackgroundAction.dataUrl) {
+      const img = new Image();
+      img.onload = function () {
+        bgImage = img;
+        replayLocalHistory();
+        drawState.hasContent = true;
+        updatePlaceholder();
+      };
+      img.src = lastBackgroundAction.dataUrl;
     }
 
     replayLocalHistory();
@@ -493,16 +527,7 @@
   socket.on('drawEnd', handleRemoteDrawEnd);
 
   socket.on('clearCanvas', () => {
-    localHistory.length = 0;
-    bgImage = null;
-    drawCtx.save();
-    drawCtx.setTransform(1, 0, 0, 1, 0, 0);
-    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-    drawCtx.restore();
-    updateCanvasTransforms();
-    redrawBackground();
-    drawState.hasContent = false;
-    updatePlaceholder();
+    clearCanvas(true);
     showToast('Canvas cleared');
   });
 
@@ -525,7 +550,7 @@
     localHistory.push({ type: 'clearBackground' });
     while (localHistory.length > MAX_LOCAL_HISTORY) localHistory.shift();
     redrawBackground();
-    drawState.hasContent = false;
+    drawState.hasContent = hasDrawContent();
     updatePlaceholder();
     showToast('Background image cleared');
   });
@@ -583,7 +608,7 @@
       panX = mx - (pinchState.midX - pinchState.panX) * (newZoom / pinchState.zoom);
       panY = my - (pinchState.midY - pinchState.panY) * (newZoom / pinchState.zoom);
       zoom = newZoom;
-      applyView();
+      scheduleApplyView();
     }
   }, { passive: false });
 
@@ -628,7 +653,7 @@
     if (!panning) return;
     panX = panOrigX + (e.clientX - panStartX);
     panY = panOrigY + (e.clientY - panStartY);
-    applyView();
+    scheduleApplyView();
   });
 
   window.addEventListener('mouseup', () => {
@@ -712,10 +737,10 @@
       const panPerPixel = panRange / (trackH - th);
       panY = scrollbarDragPan - delta * panPerPixel;
     }
-    applyView();
+    scheduleApplyView();
   });
 
-  window.addEventListener('resize', resizeCanvas);
+  window.addEventListener('resize', scheduleResizeCanvas);
 
   document.getElementById('penTool').addEventListener('click', () => setTool('pen'));
   document.getElementById('eraserTool').addEventListener('click', () => setTool('eraser'));
@@ -740,10 +765,6 @@
   document.getElementById('clearBtn').addEventListener('click', () => {
     if (confirm('Clear the entire canvas? This affects all users.')) {
       clearCanvas(false);
-      bgImage = null;
-      redrawBackground();
-      drawState.hasContent = false;
-      updatePlaceholder();
     }
   });
 
@@ -756,6 +777,7 @@
     if (e.target.files && e.target.files[0]) {
       setBackgroundImage(e.target.files[0]);
     }
+    bgImageInput.value = '';
   });
 
   const toolbar = document.getElementById('toolbar');
